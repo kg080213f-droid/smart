@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+
+<title>MediaPipe NeoPixel Touch</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<style>
+
+body{
+
+  margin:0;
+
+  background:#111;
+
+  color:white;
+
+  text-align:center;
+
+  font-family:Arial;
+
+}
+
+h2{margin:10px}
+
+input{
+
+  padding:7px;
+
+  font-size:16px;
+
+  width:150px;
+
+}
+
+button{
+
+  padding:7px 15px;
+
+  font-size:16px;
+
+}
+
+#status{
+
+  font-size:30px;
+
+  font-weight:bold;
+
+  margin:10px;
+
+}
+
+#box{
+
+  position:relative;
+
+  width:640px;
+
+  height:480px;
+
+  margin:auto;
+
+}
+
+video{
+
+  display:none;
+
+}
+
+canvas{
+
+  position:absolute;
+
+  left:0;
+
+  top:0;
+
+  width:640px;
+
+  height:480px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>MediaPipe NeoPixel Touch</h2>
+
+ESP32 IP :
+
+<input id="espIP" value="192.168.0.23">
+
+<button onclick="testESP()">연결 테스트</button>
+
+<div id="status">LED OFF</div>
+
+<div id="box">
+
+  <video id="video" width="640" height="480" autoplay playsinline></video>
+
+  <canvas id="canvas" width="640" height="480"></canvas>
+
+</div>
+
+<script>
+
+const video = document.getElementById("video");
+
+const canvas = document.getElementById("canvas");
+
+const ctx = canvas.getContext("2d");
+
+const statusText = document.getElementById("status");
+
+// ================================
+
+// 빨간 터치 버튼
+
+// ================================
+
+const BUTTON_X = 500;
+
+const BUTTON_Y = 120;
+
+const BUTTON_RADIUS = 55;
+
+// LED 상태
+
+let ledOn = false;
+
+// 이전 프레임 터치 상태
+
+let previousTouch = false;
+
+// ================================
+
+// ESP32 연결 테스트
+
+// ================================
+
+function testESP(){
+
+  const ip = document.getElementById("espIP").value;
+
+  fetch(`http://${ip}/`)
+
+  .then(response => response.text())
+
+  .then(data => {
+
+    alert("ESP32 연결 성공\n" + data);
+
+  })
+
+  .catch(error => {
+
+    alert("ESP32 연결 실패");
+
+  });
+
+}
+
+// ================================
+
+// ESP32 LED 전송
+
+// ================================
+
+function sendLED(state){
+
+  const ip = document.getElementById("espIP").value;
+
+  fetch(`http://${ip}/led?state=${state}`)
+
+  .then(response => response.text())
+
+  .then(data => {
+
+    console.log(data);
+
+  })
+
+  .catch(error => {
+
+    console.log("ESP32 통신 오류");
+
+  });
+
+}
+
+// ================================
+
+// MediaPipe 결과
+
+// ================================
+
+function onResults(results){
+
+  ctx.save();
+
+  ctx.clearRect(
+
+    0,
+
+    0,
+
+    canvas.width,
+
+    canvas.height
+
+  );
+
+  // 카메라 좌우 반전
+
+  ctx.translate(canvas.width,0);
+
+  ctx.scale(-1,1);
+
+  ctx.drawImage(
+
+    results.image,
+
+    0,
+
+    0,
+
+    canvas.width,
+
+    canvas.height
+
+  );
+
+  ctx.restore();
+
+  // ================================
+
+  // 터치 버튼
+
+  // ================================
+
+  if(ledOn){
+
+    // LED ON이면 빨간색 채움
+
+    ctx.fillStyle="red";
+
+  }else{
+
+    // OFF이면 어두운 빨강
+
+    ctx.fillStyle="#500000";
+
+  }
+
+  ctx.beginPath();
+
+  ctx.arc(
+
+    BUTTON_X,
+
+    BUTTON_Y,
+
+    BUTTON_RADIUS,
+
+    0,
+
+    Math.PI*2
+
+  );
+
+  ctx.fill();
+
+  ctx.lineWidth=5;
+
+  ctx.strokeStyle="red";
+
+  ctx.stroke();
+
+  // 버튼 글자
+
+  ctx.fillStyle="white";
+
+  ctx.font="bold 20px Arial";
+
+  ctx.textAlign="center";
+
+  ctx.fillText(
+
+    ledOn ? "ON" : "OFF",
+
+    BUTTON_X,
+
+    BUTTON_Y+7
+
+  );
+
+  let currentTouch=false;
+
+  // ================================
+
+  // 손 검출
+
+  // ================================
+
+  if(results.multiHandLandmarks){
+
+    for(const landmarks of results.multiHandLandmarks){
+
+      // 좌우 반전 좌표로 랜드마크 다시 계산
+
+      const flipped = landmarks.map(p => ({
+
+        x:1-p.x,
+
+        y:p.y,
+
+        z:p.z
+
+      }));
+
+      // 손 뼈 그리기
+
+      drawConnectors(
+
+        ctx,
+
+        flipped,
+
+        HAND_CONNECTIONS,
+
+        {
+
+          color:"#00FF00",
+
+          lineWidth:3
+
+        }
+
+      );
+
+      drawLandmarks(
+
+        ctx,
+
+        flipped,
+
+        {
+
+          color:"#00FFFF",
+
+          radius:3
+
+        }
+
+      );
+
+      // ================================
+
+      // 검지 끝 ID = 8
+
+      // ================================
+
+      const tip = flipped[8];
+
+      const x = tip.x * canvas.width;
+
+      const y = tip.y * canvas.height;
+
+      
+
+      // 검지 끝 노란 원
+
+      ctx.beginPath();
+
+      ctx.arc(x, y,15, 0, Math.PI*2);
+
+      ctx.fillStyle="yellow";
+
+      ctx.fill();
+
+      // ================================
+
+      // 버튼까지 거리
+
+      // ================================
+
+      const dx = x - BUTTON_X;
+
+      const dy = y - BUTTON_Y;
+
+      const distance = Math.sqrt(dx*dx + dy*dy );
+
+      // ================================
+
+      // 원 안으로 들어오면 TOUCH
+
+      // ================================
+
+      if(distance < BUTTON_RADIUS){
+
+        currentTouch=true;
+
+        ctx.fillStyle="yellow";
+
+        ctx.font= "bold 25px Arial";
+
+        ctx.fillText("TOUCH",BUTTON_X,BUTTON_Y+90);
+
+      }
+
+    }
+
+  }
+
+  // ================================
+
+  // Toggle
+
+  // ================================
+
+  /*
+
+     이전 프레임 = 원 밖
+
+     현재 프레임 = 원 안
+
+     이 순간에만 실행
+
+  */
+
+  if( currentTouch && !previousTouch){
+
+    ledOn = !ledOn;
+
+    if(ledOn){
+
+      statusText.innerText= "NeoPixel RED ON";
+
+      statusText.style.color= "red";
+
+      sendLED("on");
+
+    }else{
+
+      statusText.innerText="NeoPixel OFF";
+
+      statusText.style.color="white";
+
+      sendLED("off");
+
+    }
+
+  }
+
+  previousTouch =
+
+    currentTouch;
+
+}
+
+// ================================
+
+// MediaPipe Hands
+
+// ================================
+
+const hands = new Hands({
+
+  locateFile:(file)=>{
+
+    return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+
+  }
+
+});
+
+hands.setOptions({
+
+  maxNumHands:1,
+
+  modelComplexity:1,
+
+  minDetectionConfidence:0.7,
+
+  minTrackingConfidence:0.7
+
+});
+
+hands.onResults(onResults);
+
+// ================================
+
+// Camera
+
+// ================================
+
+const camera = new Camera(
+
+  video,
+
+  {
+
+    onFrame:async()=>{
+
+      await hands.send({
+
+        image:video
+
+      });
+
+    },
+
+    width:640,
+
+    height:480
+
+  }
+
+);
+
+camera.start();
+
+</script>
+
+</body>
+
+</html>
