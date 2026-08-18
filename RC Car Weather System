@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>AI RC CAR CONTROL CENTER</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+
+<style>
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+
+    margin:0;
+
+    background:
+        radial-gradient(
+            circle at top,
+            #172333,
+            #070b10 60%
+        );
+
+    color:#fff;
+
+    font-family:
+        Arial,
+        "Noto Sans KR",
+        sans-serif;
+
+    min-height:100vh;
+
+}
+
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.header{
+
+    height:80px;
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:0 35px;
+
+    border-bottom:
+        1px solid #263545;
+
+    background:
+        rgba(10,16,24,.92);
+
+    backdrop-filter:
+        blur(15px);
+
+}
+
+.logo{
+
+    font-size:24px;
+
+    font-weight:bold;
+
+    letter-spacing:2px;
+
+}
+
+.logo span{
+
+    color:#00e5ff;
+
+}
+
+.connection{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+    color:#8ea3b8;
+
+}
+
+.dot{
+
+    width:10px;
+
+    height:10px;
+
+    border-radius:50%;
+
+    background:#00ff88;
+
+    box-shadow:
+        0 0 15px #00ff88;
+
+}
+
+
+/* =========================================================
+   MAIN
+========================================================= */
+
+.main{
+
+    max-width:1500px;
+
+    margin:auto;
+
+    padding:25px;
+
+}
+
+.grid{
+
+    display:grid;
+
+    grid-template-columns:
+        1.5fr
+        1fr;
+
+    gap:20px;
+
+}
+
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.card{
+
+    background:
+        rgba(17,25,35,.88);
+
+    border:
+        1px solid #263747;
+
+    border-radius:22px;
+
+    padding:20px;
+
+    box-shadow:
+        0 15px 40px
+        rgba(0,0,0,.35);
+
+}
+
+.card-title{
+
+    font-size:18px;
+
+    font-weight:bold;
+
+    margin-bottom:15px;
+
+    color:#d9e7f5;
+
+}
+
+
+/* =========================================================
+   CAMERA
+========================================================= */
+
+#cameraBox{
+
+    position:relative;
+
+    width:100%;
+
+    aspect-ratio:16/9;
+
+    overflow:hidden;
+
+    border-radius:18px;
+
+    background:#000;
+
+}
+
+#video{
+
+    display:none;
+
+}
+
+#canvas{
+
+    width:100%;
+
+    height:100%;
+
+    display:block;
+
+}
+
+
+/* =========================================================
+   STATUS
+========================================================= */
+
+.car-status{
+
+    margin-top:15px;
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:15px;
+
+    border-radius:15px;
+
+    background:#0b121a;
+
+}
+
+#carState{
+
+    font-size:25px;
+
+    font-weight:bold;
+
+    color:#00ff88;
+
+}
+
+#speedValue{
+
+    color:#00e5ff;
+
+}
+
+
+/* =========================================================
+   WEATHER
+========================================================= */
+
+.weather-main{
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:space-between;
+
+    padding:20px;
+
+    border-radius:18px;
+
+    background:
+        linear-gradient(
+            135deg,
+            #15283a,
+            #0d1722
+        );
+
+}
+
+.weather-temp{
+
+    font-size:55px;
+
+    font-weight:bold;
+
+}
+
+.weather-location{
+
+    color:#91a7ba;
+
+    margin-bottom:5px;
+
+}
+
+.weather-update{
+
+    margin-top:8px;
+
+    color:#71879a;
+
+    font-size:13px;
+
+}
+
+.weather-icon{
+
+    font-size:60px;
+
+}
+
+
+/* =========================================================
+   WEATHER GRID
+========================================================= */
+
+.weather-grid{
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(2,1fr);
+
+    gap:12px;
+
+    margin-top:15px;
+
+}
+
+.weather-item{
+
+    padding:17px;
+
+    border-radius:15px;
+
+    background:#0c141d;
+
+    border:
+        1px solid #1e2d3c;
+
+}
+
+.weather-label{
+
+    color:#7e94a8;
+
+    font-size:13px;
+
+}
+
+.weather-value{
+
+    margin-top:7px;
+
+    font-size:24px;
+
+    font-weight:bold;
+
+}
+
+
+/* =========================================================
+   CONTROL
+========================================================= */
+
+.control{
+
+    margin-top:20px;
+
+    display:grid;
+
+    grid-template-columns:
+        repeat(3,1fr);
+
+    gap:12px;
+
+}
+
+.control button{
+
+    height:70px;
+
+    border:0;
+
+    border-radius:16px;
+
+    background:#162432;
+
+    color:#fff;
+
+    font-size:25px;
+
+    cursor:pointer;
+
+    transition:.15s;
+
+}
+
+.control button:hover{
+
+    background:#20384d;
+
+    transform:translateY(-2px);
+
+}
+
+.control button:active{
+
+    transform:scale(.95);
+
+}
+
+.forward{
+
+    grid-column:2;
+
+}
+
+.left{
+
+    grid-column:1;
+
+}
+
+.stop{
+
+    grid-column:2;
+
+    background:#7b1f28 !important;
+
+}
+
+.right{
+
+    grid-column:3;
+
+}
+
+.backward{
+
+    grid-column:2;
+
+}
+
+
+/* =========================================================
+   SPEED
+========================================================= */
+
+.speed-box{
+
+    margin-top:20px;
+
+}
+
+#speedSlider{
+
+    width:100%;
+
+}
+
+
+/* =========================================================
+   IP
+========================================================= */
+
+.ip-box{
+
+    display:flex;
+
+    gap:10px;
+
+}
+
+.ip-box input{
+
+    flex:1;
+
+    padding:13px;
+
+    border-radius:10px;
+
+    border:1px solid #304354;
+
+    background:#0a1016;
+
+    color:#fff;
+
+}
+
+.ip-box button{
+
+    padding:13px 20px;
+
+    border:0;
+
+    border-radius:10px;
+
+    background:#00a8c6;
+
+    color:#fff;
+
+    cursor:pointer;
+
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media(max-width:1000px){
+
+    .grid{
+
+        grid-template-columns:1fr;
+
+    }
+
+}
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<!-- =========================================================
+HEADER
+========================================================= -->
+
+<header class="header">
+
+    <div class="logo">
+
+        AI RC <span>CONTROL</span>
+
+    </div>
+
+    <div class="connection">
+
+        <div class="dot"></div>
+
+        <span id="connectionText">
+            SYSTEM READY
+        </span>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================================
+MAIN
+========================================================= -->
+
+<main class="main">
+
+
+<div class="grid">
+
+
+<!-- =======================================================
+LEFT
+================================================------- -->
+
+<section>
+
+
+<div class="card">
+
+<div class="card-title">
+
+    MEDIAPIPE VISION CONTROL
+
+</div>
+
+
+<div id="cameraBox">
+
+    <video
+        id="video"
+        width="640"
+        height="480"
+        autoplay
+        playsinline>
+    </video>
+
+    <canvas
+        id="canvas"
+        width="640"
+        height="480">
+    </canvas>
+
+</div>
+
+
+<div class="car-status">
+
+    <div>
+
+        CAR STATUS
+
+        <div id="carState">
+            STOP
+        </div>
+
+    </div>
+
+
+    <div>
+
+        SPEED
+
+        <div id="speedValue">
+            150
+        </div>
+
+    </div>
+
+</div>
+
+
+</div>
+
+
+<!-- =======================================================
+CONTROL
+======================================================= -->
+
+<div class="card">
+
+<div class="card-title">
+
+    RC CAR CONTROL
+
+</div>
+
+
+<div class="control">
+
+    <button
+        class="forward"
+        onclick="sendCommand('w')">
+        ▲
+    </button>
+
+    <button
+        class="left"
+        onclick="sendCommand('a')">
+        ◀
+    </button>
+
+    <button
+        class="stop"
+        onclick="sendCommand('x')">
+        ■
+    </button>
+
+    <button
+        class="right"
+        onclick="sendCommand('d')">
+        ▶
+    </button>
+
+    <button
+        class="backward"
+        onclick="sendCommand('s')">
+        ▼
+    </button>
+
+</div>
+
+
+<div class="speed-box">
+
+    속도
+
+    <input
+        id="speedSlider"
+        type="range"
+        min="0"
+        max="255"
+        value="150"
+        oninput="changeSpeed(this.value)">
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+<!-- =======================================================
+RIGHT
+======================================================= -->
+
+<section>
+
+
+<!-- =======================================================
+WEATHER
+======================================================= -->
+
+<div class="card">
+
+<div class="card-title">
+
+    KMA REAL-TIME WEATHER
+
+</div>
+
+
+<div class="weather-main">
+
+
+<div>
+
+    <div class="weather-location">
+
+        기상청 초단기실황
+
+    </div>
+
+    <div
+        id="temperature"
+        class="weather-temp">
+
+        --°C
+
+    </div>
+
+    <div
+        id="weatherUpdate"
+        class="weather-update">
+
+        데이터 불러오는 중...
+
+    </div>
+
+</div>
+
+
+<div
+    id="weatherIcon"
+    class="weather-icon">
+
+    ☁️
+
+</div>
+
+
+</div>
+
+
+<div class="weather-grid">
+
+
+<div class="weather-item">
+
+    <div class="weather-label">
+        습도
+    </div>
+
+    <div
+        id="humidity"
+        class="weather-value">
+
+        -- %
+
+    </div>
+
+</div>
+
+
+<div class="weather-item">
+
+    <div class="weather-label">
+        1시간 강수량
+    </div>
+
+    <div
+        id="rain"
+        class="weather-value">
+
+        -- mm
+
+    </div>
+
+</div>
+
+
+<div class="weather-item">
+
+    <div class="weather-label">
+        풍속
+    </div>
+
+    <div
+        id="wind"
+        class="weather-value">
+
+        -- m/s
+
+    </div>
+
+</div>
+
+
+<div class="weather-item">
+
+    <div class="weather-label">
+        풍향
+    </div>
+
+    <div
+        id="windDirection"
+        class="weather-value">
+
+        --
+
+    </div>
+
+</div>
+
+
+</div>
+
+</div>
+
+
+<!-- =======================================================
+ESP32
+======================================================= -->
+
+<div class="card">
+
+<div class="card-title">
+
+    ESP32 CONNECTION
+
+</div>
+
+
+<div class="ip-box">
+
+<input
+    id="espIP"
+    value="10.114.189.128">
+
+<button
+    onclick="connectESP()">
+
+    CONNECT
+
+</button>
+
+</div>
+
+
+<br>
+
+<div id="espStatus">
+
+    DISCONNECTED
+
+</div>
+
+
+</div>
+
+
+</section>
+
+
+</div>
+
+
+</main>
+
+
+<script>
+
+/* =========================================================
+   ESP32
+========================================================= */
+
+let ESP_IP =
+    "10.114.189.128";
+
+let socket = null;
+
+
+function connectESP(){
+
+    ESP_IP =
+        document
+        .getElementById("espIP")
+        .value
+        .trim();
+
+
+    try{
+
+        socket =
+            new WebSocket(
+                `ws://${ESP_IP}/ws`
+            );
+
+
+        socket.onopen = function(){
+
+            document
+            .getElementById("espStatus")
+            .innerText =
+                "CONNECTED";
+
+            document
+            .getElementById("connectionText")
+            .innerText =
+                "RC CAR ONLINE";
+
+        };
+
+
+        socket.onclose = function(){
+
+            document
+            .getElementById("espStatus")
+            .innerText =
+                "DISCONNECTED";
+
+            document
+            .getElementById("connectionText")
+            .innerText =
+                "RC CAR OFFLINE";
+
+        };
+
+
+        socket.onmessage =
+            function(event){
+
+                try{
+
+                    const data =
+                        JSON.parse(
+                            event.data
+                        );
+
+
+                    if(data.command){
+
+                        updateCarState(
+                            data.command
+                        );
+
+                    }
+
+                    if(data.speed !== undefined){
+
+                        document
+                        .getElementById(
+                            "speedValue"
+                        )
+                        .innerText =
+                            data.speed;
+
+                    }
+
+                }catch(e){
+
+                    console.log(e);
+
+                }
+
+            };
+
+    }catch(error){
+
+        console.error(error);
+
+    }
+
+}
+
+
+/* =========================================================
+   RC COMMAND
+========================================================= */
+
+function sendCommand(command){
+
+    if(
+        socket &&
+        socket.readyState === WebSocket.OPEN
+    ){
+
+        socket.send(command);
+
+        updateCarState(command);
+
+    }
+
+}
+
+
+/* =========================================================
+   상태
+========================================================= */
+
+function updateCarState(command){
+
+    const state =
+        document
+        .getElementById("carState");
+
+
+    const names = {
+
+        w:"FORWARD",
+
+        s:"BACKWARD",
+
+        a:"LEFT",
+
+        d:"RIGHT",
+
+        x:"STOP"
+
+    };
+
+
+    state.innerText =
+        names[command] || "STOP";
+
+}
+
+
+/* =========================================================
+   SPEED
+========================================================= */
+
+function changeSpeed(value){
+
+    document
+    .getElementById("speedValue")
+    .innerText =
+        value;
+
+
+    fetch(
+        `http://${ESP_IP}/speed?value=${value}`
+    )
+    .catch(
+        console.log
+    );
+
+}
+
+
+/* =========================================================
+   KEYBOARD
+========================================================= */
+
+document.addEventListener(
+    "keydown",
+    function(event){
+
+        const key =
+            event.key.toLowerCase();
+
+
+        if(
+            key === "w" ||
+            key === "a" ||
+            key === "s" ||
+            key === "d"
+        ){
+
+            sendCommand(key);
+
+        }
+
+
+        if(
+            event.code === "Space"
+        ){
+
+            sendCommand("x");
+
+        }
+
+    }
+);
+
+
+/* =========================================================
+   MEDIA PIPE
+========================================================= */
+
+const video =
+    document.getElementById(
+        "video"
+    );
+
+const canvas =
+    document.getElementById(
+        "canvas"
+    );
+
+const ctx =
+    canvas.getContext("2d");
+
+
+const hands =
+    new Hands({
+
+        locateFile:
+        (file)=>{
+
+            return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+
+        }
+
+    });
+
+
+hands.setOptions({
+
+    maxNumHands:1,
+
+    modelComplexity:1,
+
+    minDetectionConfidence:.7,
+
+    minTrackingConfidence:.7
+
+});
+
+
+hands.onResults(
+    onResults
+);
+
+
+const camera =
+    new Camera(
+
+        video,
+
+        {
+
+            onFrame:
+            async()=>{
+
+                await hands.send({
+
+                    image:video
+
+                });
+
+            },
+
+            width:640,
+
+            height:480
+
+        }
+
+    );
+
+
+/* =========================================================
+   MEDIA PIPE 상태
+========================================================= */
+
+let previousGesture =
+    "";
+
+
+/* =========================================================
+   MEDIA PIPE 결과
+========================================================= */
+
+function onResults(results){
+
+    ctx.save();
+
+    ctx.clearRect(
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    ctx.translate(
+        canvas.width,
+        0
+    );
+
+    ctx.scale(
+        -1,
+        1
+    );
+
+
+    ctx.drawImage(
+        results.image,
+        0,
+        0,
+        canvas.width,
+        canvas.height
+    );
+
+
+    if(
+        results.multiHandLandmarks
+    ){
+
+        for(
+            const landmarks
+            of results.multiHandLandmarks
+        ){
+
+            drawConnectors(
+                ctx,
+                landmarks,
+                HAND_CONNECTIONS,
+                {
+                    color:"#00ff88",
+                    lineWidth:3
+                }
+            );
+
+
+            drawLandmarks(
+                ctx,
+                landmarks,
+                {
+                    color:"#00e5ff",
+                    radius:4
+                }
+            );
+
+
+            const index =
+                landmarks[8];
+
+
+            const x =
+                (1-index.x)
+                * canvas.width;
+
+
+            const y =
+                index.y
+                * canvas.height;
+
+
+            ctx.restore();
+
+
+            detectGesture(
+                x,
+                y
+            );
+
+
+            return;
+
+        }
+
+    }
+
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   손가락 위치 기반 조종
+========================================================= */
+
+function detectGesture(x,y){
+
+    const w =
+        canvas.width;
+
+    const h =
+        canvas.height;
+
+
+    let command =
+        "x";
+
+
+    /*
+        화면을 3x3 영역으로 분할
+    */
+
+
+    if(y < h*.35){
+
+        command = "w";
+
+    }
+
+    else if(y > h*.65){
+
+        command = "s";
+
+    }
+
+    else if(x < w*.35){
+
+        command = "a";
+
+    }
+
+    else if(x > w*.65){
+
+        command = "d";
+
+    }
+
+    else{
+
+        command = "x";
+
+    }
+
+
+    if(
+        command !==
+        previousGesture
+    ){
+
+        sendCommand(command);
+
+        previousGesture =
+            command;
+
+    }
+
+}
+
+
+/* =========================================================
+   날씨 API
+========================================================= */
+
+
+/*
+============================================================
+기상청 API 설정
+============================================================
+
+중요:
+서비스키를 여기에 입력하세요.
+
+이전에 채팅에 올린 키는 공개되었으므로
+실제 키라면 새 키를 발급해서 사용하세요.
+*/
+
+const WEATHER_KEY =
+    "vH8etxAo3TN1%2BsKnyTaZNA6Lc0UWrolJHBBVMkmplEP%2Fj962eZtKUWnesmD9LZjYGePE3A%2FdcY%2BKDB9R2cb2Jw%3D%3D";
+
+
+/*
+   예보 격자 좌표
+
+   아래 값은 예시입니다.
+
+   실제 사용할 지역의 nx / ny로 변경하세요.
+*/
+
+const WEATHER_NX =
+    60;
+
+const WEATHER_NY =
+    121;
+
+
+/* =========================================================
+   날짜
+========================================================= */
+
+function getKoreaDate(){
+
+    const now =
+        new Date();
+
+    const korea =
+        new Date(
+            now.toLocaleString(
+                "en-US",
+                {
+                    timeZone:
+                        "Asia/Seoul"
+                }
+            )
+        );
+
+    return korea;
+
+}
+
+
+/* =========================================================
+   기상청 발표시각
+========================================================= */
+
+function getBaseTime(){
+
+    const now =
+        getKoreaDate();
+
+
+    /*
+       초단기실황은 최근 발표시각을 사용.
+
+       안전하게 현재 시각보다
+       조금 이전 시각을 사용합니다.
+    */
+
+    now.setMinutes(
+        now.getMinutes() - 10
+    );
+
+
+    const yyyy =
+        now.getFullYear();
+
+
+    const mm =
+        String(
+            now.getMonth()+1
+        ).padStart(2,"0");
+
+
+    const dd =
+        String(
+            now.getDate()
+        ).padStart(2,"0");
+
+
+    const hh =
+        String(
+            now.getHours()
+        ).padStart(2,"0");
+
+
+    const min =
+        String(
+            now.getMinutes()
+        ).padStart(2,"0");
+
+
+    return {
+
+        date:
+            `${yyyy}${mm}${dd}`,
+
+        time:
+            `${hh}${min}`
+
+    };
+
+}
+
+
+/* =========================================================
+   날씨 가져오기
+========================================================= */
+
+async function getWeather(){
+
+    if(
+        !WEATHER_KEY ||
+        WEATHER_KEY.includes(
+            "여기에_"
+        )
+    ){
+
+        document
+        .getElementById(
+            "weatherUpdate"
+        )
+        .innerText =
+            "API KEY를 입력하세요.";
+
+        return;
+
+    }
+
+
+    const base =
+        getBaseTime();
+
+
+    const params =
+        new URLSearchParams({
+
+            serviceKey:
+                WEATHER_KEY,
+
+            pageNo:
+                "1",
+
+            numOfRows:
+                "1000",
+
+            dataType:
+                "JSON",
+
+            base_date:
+                base.date,
+
+            base_time:
+                base.time,
+
+            nx:
+                WEATHER_NX,
+
+            ny:
+                WEATHER_NY
+
+        });
+
+
+    const url =
+        "https://apis.data.go.kr/" +
+        "1360000/VilageFcstInfoService_2.0/" +
+        "getUltraSrtNcst?" +
+        params.toString();
+
+
+    try{
+
+        const response =
+            await fetch(url);
+
+
+        if(!response.ok){
+
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+
+        }
+
+
+        const json =
+            await response.json();
+
+
+        if(
+            !json.response ||
+            !json.response.body
+        ){
+
+            throw new Error(
+                "잘못된 API 응답"
+            );
+
+        }
+
+
+        const items =
+            json
+            .response
+            .body
+            .items
+            .item;
+
+
+        const weather = {};
+
+
+        for(
+            const item
+            of items
+        ){
+
+            weather[
+                item.category
+            ] =
+                item.obsrValue;
+
+        }
+
+
+        updateWeather(
+            weather
+        );
+
+
+    }catch(error){
+
+        console.error(
+            "Weather API Error:",
+            error
+        );
+
+
+        document
+        .getElementById(
+            "weatherUpdate"
+        )
+        .innerText =
+            "날씨 데이터 조회 실패";
+
+    }
+
+}
+
+
+/* =========================================================
+   날씨 화면 업데이트
+========================================================= */
+
+function updateWeather(weather){
+
+    /*
+        T1H = 기온
+        REH = 습도
+        RN1 = 1시간 강수량
+        WSD = 풍속
+        VEC = 풍향
+    */
+
+
+    const temperature =
+        weather.T1H;
+
+
+    const humidity =
+        weather.REH;
+
+
+    const rain =
+        weather.RN1;
+
+
+    const wind =
+        weather.WSD;
+
+
+    const direction =
+        weather.VEC;
+
+
+    if(
+        temperature !== undefined
+    ){
+
+        document
+        .getElementById(
+            "temperature"
+        )
+        .innerText =
+            temperature +
+            "°C";
+
+    }
+
+
+    if(
+        humidity !== undefined
+    ){
+
+        document
+        .getElementById(
+            "humidity"
+        )
+        .innerText =
+            humidity +
+            " %";
+
+    }
+
+
+    if(
+        rain !== undefined
+    ){
+
+        document
+        .getElementById(
+            "rain"
+        )
+        .innerText =
+            rain +
+            " mm";
+
+    }
+
+
+    if(
+        wind !== undefined
+    ){
+
+        document
+        .getElementById(
+            "wind"
+        )
+        .innerText =
+            wind +
+            " m/s";
+
+    }
+
+
+    if(
+        direction !== undefined
+    ){
+
+        document
+        .getElementById(
+            "windDirection"
+        )
+        .innerText =
+            getWindDirection(
+                Number(direction)
+            );
+
+    }
+
+
+    document
+    .getElementById(
+        "weatherIcon"
+    )
+    .innerText =
+        getWeatherIcon(
+            Number(rain)
+        );
+
+
+    const now =
+        new Date();
+
+
+    document
+    .getElementById(
+        "weatherUpdate"
+    )
+    .innerText =
+        "업데이트: " +
+        now.toLocaleTimeString(
+            "ko-KR"
+        );
+
+}
+
+
+/* =========================================================
+   풍향
+========================================================= */
+
+function getWindDirection(degree){
+
+    const directions = [
+
+        "북",
+
+        "북동",
+
+        "동",
+
+        "남동",
+
+        "남",
+
+        "남서",
+
+        "서",
+
+        "북서"
+
+    ];
+
+
+    const index =
+        Math.round(
+            degree / 45
+        ) % 8;
+
+
+    return directions[index];
+
+}
+
+
+/* =========================================================
+   날씨 아이콘
+========================================================= */
+
+function getWeatherIcon(rain){
+
+    if(
+        rain > 0
+    ){
+
+        return "🌧️";
+
+    }
+
+
+    return "☁️";
+
+}
+
+
+/* =========================================================
+   자동 날씨 갱신
+========================================================= */
+
+getWeather();
+
+
+/*
+   5분마다 API 재조회
+
+   너무 짧은 주기로 계속 호출하지 않도록
+   적절한 간격을 사용합니다.
+*/
+
+setInterval(
+    getWeather,
+    5 * 60 * 1000
+);
+
+
+/* =========================================================
+   시작
+========================================================= */
+
+connectESP();
+
+camera.start();
+
+</script>
+
+
+</body>
+
+</html>
